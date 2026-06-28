@@ -1,0 +1,30 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv
+env.bak/
+venv.bak/
+
+# User data (Sensitive!)
+*.csv
+*.xlsx
+*.xls
+config.py
+
+# Temporary Office Files
+~$*
+
+# Logs and system
+*.log
+debug_screenshots/
+.DS_Store
+
+# Chrome profile (extremely sensitive!) and completed lists
+chrome_profile/
+completed.txt
+eskiTam.txt

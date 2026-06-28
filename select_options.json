@@ -1,0 +1,44 @@
+{
+    "tgv_gendercode": [
+        {
+            "text": "",
+            "value": ""
+        },
+        {
+            "text": "Erkek",
+            "value": "1"
+        },
+        {
+            "text": "Kadın",
+            "value": "2"
+        }
+    ],
+    "tgv_nationality": [
+        {
+            "text": "",
+            "value": ""
+        },
+        {
+            "text": "TC Vatandaşı",
+            "value": "1"
+        },
+        {
+            "text": "Yabancı Uyruklu",
+            "value": "2"
+        }
+    ],
+    "tgv_drawingsfortyhadithattend": [
+        {
+            "text": "",
+            "value": ""
+        },
+        {
+            "text": "Evet",
+            "value": "1"
+        },
+        {
+            "text": "Hayır",
+            "value": "2"
+        }
+    ]
+}

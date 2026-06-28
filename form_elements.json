@@ -1,0 +1,398 @@
+[
+    {
+        "tag": "label",
+        "text": "Adı *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "firstname-1749800952511"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "firstname",
+        "id": "firstname-1749800952511",
+        "type": "text",
+        "placeholder": "Adı",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Soyadı *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "lastname-1749800960114"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "lastname",
+        "id": "lastname-1749800960114",
+        "type": "text",
+        "placeholder": "Soyadı",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Cinsiyet *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "tgv_gendercode-1749800987222"
+    },
+    {
+        "tag": "select",
+        "text": "",
+        "name": "tgv_gendercode",
+        "id": "tgv_gendercode-1749800987222",
+        "type": "select-one",
+        "placeholder": null,
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Uyruk *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "tgv_nationality-1749801055668"
+    },
+    {
+        "tag": "select",
+        "text": "",
+        "name": "tgv_nationality",
+        "id": "tgv_nationality-1749801055668",
+        "type": "select-one",
+        "placeholder": null,
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "TC Kimlik No / Pasaport No *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "tgv_identificationnumber-1749801026852"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_identificationnumber",
+        "id": "tgv_identificationnumber-1749801026852",
+        "type": "text",
+        "placeholder": "TC Kimlik No / Pasaport No",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Doğum Tarihi *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "tgv_birthdate-1749801072668"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_birthdate",
+        "id": "tgv_birthdate-1749801072668",
+        "type": "date",
+        "placeholder": "Doğum Tarihi",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Okul İli *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "dc1abd83-0a3c-4e15-8f66-e36e005440f5"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_schoolcity",
+        "id": "dc1abd83-0a3c-4e15-8f66-e36e005440f5",
+        "type": "text",
+        "placeholder": "Okul İli",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Okul İlçesi *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "85fe9282-0e14-488f-99c4-c6a8911f46d0"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_schoolcounty",
+        "id": "85fe9282-0e14-488f-99c4-c6a8911f46d0",
+        "type": "text",
+        "placeholder": "Okul İlçesi",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Okul *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "f281dbed-91d7-4243-a503-0a51d165026a"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_schoolid",
+        "id": "f281dbed-91d7-4243-a503-0a51d165026a",
+        "type": "text",
+        "placeholder": "Okul",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Listede Okulum *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "tgv_existschool-1749801290860"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_existschool",
+        "id": "okul_yok",
+        "type": "radio",
+        "placeholder": "",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Yok",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "okul_yok"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_existschool",
+        "id": "okul_var",
+        "type": "radio",
+        "placeholder": "",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Var",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "okul_var"
+    },
+    {
+        "tag": "label",
+        "text": "",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "tgv_unknownschool-1749801332538"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_unknownschool",
+        "id": "tgv_unknownschool-1749801332538",
+        "type": "text",
+        "placeholder": "Okul",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Yaz Okuluna Katılmak İstediğiniz İl *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "da195c6e-66d2-4b0c-8460-b264dcf257a8"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_summerschoolcity",
+        "id": "da195c6e-66d2-4b0c-8460-b264dcf257a8",
+        "type": "text",
+        "placeholder": "İl",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Yaz Okuluna Katılmak İstediğiniz İlçe *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "98c32c63-66dd-4123-b93d-684c581836c7"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_summerschooldistrict",
+        "id": "98c32c63-66dd-4123-b93d-684c581836c7",
+        "type": "text",
+        "placeholder": "İlçe",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "8cbb7a50-20e1-487d-a753-3e271af8c962"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_appliedschool",
+        "id": "8cbb7a50-20e1-487d-a753-3e271af8c962",
+        "type": "text",
+        "placeholder": "Okul",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Yaz Okulunun 3. haftasında yapılacak olan “Çizimlerle 40 Hadis” resim yarışmasına katılmak istiyor musunuz? *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "tgv_drawingsfortyhadithattend-1776075453562"
+    },
+    {
+        "tag": "select",
+        "text": "",
+        "name": "tgv_drawingsfortyhadithattend",
+        "id": "tgv_drawingsfortyhadithattend-1776075453562",
+        "type": "select-one",
+        "placeholder": null,
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Veli Ad Soyad *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "tgv_parentnamesurname-1749801366232"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_parentnamesurname",
+        "id": "tgv_parentnamesurname-1749801366232",
+        "type": "text",
+        "placeholder": "Veli Adı Soyadı",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "Telefon *",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "mobilephone-1747992360439"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "mobilephone",
+        "id": "mobilephone-1747992360439",
+        "type": "tel",
+        "placeholder": "5xx-xxx-xxxx",
+        "for": ""
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "kvkkCheckbox",
+        "id": "kvkkCheckbox",
+        "type": "checkbox",
+        "placeholder": "",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "KVKK Aydınlatma Metni'ni okudum ve kabul ediyorum.",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "kvkkCheckbox"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "ms_captcha_solution",
+        "id": "ms_captcha_solution",
+        "type": "hidden",
+        "placeholder": "",
+        "for": ""
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "ms_captcha_type",
+        "id": "ms_captcha_type",
+        "type": "hidden",
+        "placeholder": "",
+        "for": ""
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "ms_captcha_flow_id",
+        "id": "ms_captcha_flow_id",
+        "type": "hidden",
+        "placeholder": "",
+        "for": ""
+    },
+    {
+        "tag": "label",
+        "text": "",
+        "name": null,
+        "id": "",
+        "type": null,
+        "placeholder": null,
+        "for": "tgv_universitystartyear-1748002063357"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "name": "tgv_universitystartyear",
+        "id": "tgv_universitystartyear-1748002063357",
+        "type": "text",
+        "placeholder": "Üniversite Giriş Yılı",
+        "for": ""
+    }
+]
