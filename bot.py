@@ -170,6 +170,7 @@ def init_driver(log_callback=None):
     import re
     options = uc.ChromeOptions()
     options.add_argument("--disable-popup-blocking")
+    options.add_argument("--lang=en-US")
 
     # Sabit profil klasörü yolu (Proje dizini altında 'chrome_profile')
     project_dir = os.path.dirname(os.path.abspath(__file__))
@@ -212,6 +213,7 @@ def init_driver(log_callback=None):
             try:
                 retry_options = uc.ChromeOptions()
                 retry_options.add_argument("--disable-popup-blocking")
+                retry_options.add_argument("--lang=en-US")
                 kwargs = {"options": retry_options, "version_main": major_version}
                 if browser_path:
                     kwargs["browser_executable_path"] = browser_path
@@ -225,6 +227,7 @@ def init_driver(log_callback=None):
         try:
             default_options = uc.ChromeOptions()
             default_options.add_argument("--disable-popup-blocking")
+            default_options.add_argument("--lang=en-US")
             driver = uc.Chrome(options=default_options)
             driver.maximize_window()
             return driver
@@ -240,6 +243,7 @@ def init_driver(log_callback=None):
                 try:
                     default_retry_options = uc.ChromeOptions()
                     default_retry_options.add_argument("--disable-popup-blocking")
+                    default_retry_options.add_argument("--lang=en-US")
                     driver = uc.Chrome(options=default_retry_options, version_main=major_version2)
                     driver.maximize_window()
                     return driver
@@ -286,9 +290,9 @@ YENISEHIR_ORTAOKULLAR = [
 # Aşağıdaki değerler her öğrenci için sabit olarak uygulanır:
 SABIT = {
     'okul_ili'            : 'Diyarbakır',
-    'okul_ilcesi'         : 'Yenişehir',
+    'okul_ilcesi'         : 'Kayapınar',
     'yaz_okulu_ili'       : 'Diyarbakır',
-    'yaz_okulu_ilcesi'    : 'Yenişehir',
+    'yaz_okulu_ilcesi'    : 'Kayapınar',
     'nationality_val'     : '1',          # 1 = TC Vatandaşı
     'hadis_val'           : '2',          # 2 = Hayır
     # Cinsiyet alanı DOLDURULMAYACAK (formda zorunlu ama tahmin ihtimali yanlış)
@@ -678,22 +682,100 @@ def solve_recaptcha_2captcha(driver, log_callback=None):
 
 def _find_recaptcha_anchor_frame(driver):
     """Sayfa üzerindeki reCAPTCHA anchor (checkbox) iframe'ini bulur."""
-    for iframe in driver.find_elements(By.TAG_NAME, 'iframe'):
-        src   = iframe.get_attribute('src') or ''
-        title = iframe.get_attribute('title') or ''
-        if 'recaptcha' in src.lower() or 'robot' in title.lower() or 'anchor' in src:
-            return iframe
+    try:
+        driver.switch_to.default_content()
+        for iframe in driver.find_elements(By.TAG_NAME, 'iframe'):
+            src   = (iframe.get_attribute('src') or '').lower()
+            title = (iframe.get_attribute('title') or '').lower()
+            if ('recaptcha' in src or 'robot' in title or 'anchor' in src) and 'bframe' not in src:
+                return iframe
+    except:
+        pass
     return None
 
 
 def _find_recaptcha_challenge_frame(driver):
     """reCAPTCHA challenge (resim/ses) iframe'ini bulur."""
-    for iframe in driver.find_elements(By.TAG_NAME, 'iframe'):
-        src   = iframe.get_attribute('src') or ''
-        title = iframe.get_attribute('title') or ''
-        if 'bframe' in src or 'challenge' in src or 'challenge' in title.lower():
-            return iframe
+    try:
+        driver.switch_to.default_content()
+        for iframe in driver.find_elements(By.TAG_NAME, 'iframe'):
+            src   = (iframe.get_attribute('src') or '').lower()
+            title = (iframe.get_attribute('title') or '').lower()
+            if 'bframe' in src or 'challenge' in src or 'challenge' in title or 'sınama' in title:
+                return iframe
+    except:
+        pass
     return None
+
+
+def is_recaptcha_solved(driver):
+    """reCAPTCHA'nın çözülüp çözülmediğini (token veya yeşil tik) kontrol eder."""
+    try:
+        driver.switch_to.default_content()
+        token = driver.execute_script(
+            "var el = document.getElementById('g-recaptcha-response') || "
+            "document.querySelector('textarea[name=\"g-recaptcha-response\"]'); "
+            "return (el && el.value && el.value.length > 20) ? el.value : '';"
+        )
+        if token:
+            return True
+        anchor = _find_recaptcha_anchor_frame(driver)
+        if anchor:
+            driver.switch_to.frame(anchor)
+            checked = driver.find_elements(
+                By.CSS_SELECTOR, '.recaptcha-checkbox-checked, [aria-checked="true"]')
+            driver.switch_to.default_content()
+            if checked:
+                return True
+    except:
+        try:
+            driver.switch_to.default_content()
+        except:
+            pass
+    return False
+
+
+def wait_for_manual_recaptcha(driver, timeout=45, log_callback=None):
+    """
+    Kullanıcının reCAPTCHA'yı ekrandan manuel olarak çözmesini bekler.
+    Her 1 saniyede bir token veya yeşil tik kontrolü yapar.
+    """
+    try:
+        import bot_munazara
+        munazara_stop = getattr(bot_munazara, 'STOP_MUNAZARA_BOT', False)
+    except:
+        munazara_stop = False
+
+    log(f"      [!] Otomatik reCAPTCHA tamamlanamadı (Google engeli veya ses kısıtlaması).", log_callback)
+    log(f"      [i] 👉 Lütfen ekrandaki reCAPTCHA'yı manuel tıklayarak çözün! (En fazla {timeout} sn bekleniyor...)", log_callback)
+    start = time.time()
+    last_log = 0
+    while time.time() - start < timeout:
+        if STOP_BOT:
+            log("      [i] Bot kullanıcı tarafından durduruldu.", log_callback)
+            return False
+
+        try:
+            import bot_munazara
+            if getattr(bot_munazara, 'STOP_MUNAZARA_BOT', False):
+                log("      [i] Bot kullanıcı tarafından durduruldu.", log_callback)
+                return False
+        except: pass
+
+        if is_recaptcha_solved(driver):
+            log("      [✓] reCAPTCHA başarıyla çözüldü (Manuel onay algılandı)!", log_callback)
+            return True
+
+        elapsed = int(time.time() - start)
+        remaining = timeout - elapsed
+        if remaining > 0 and elapsed - last_log >= 10:
+            log(f"      [i] reCAPTCHA çözümü bekleniyor... (Kalan süre: {remaining} sn)", log_callback)
+            last_log = elapsed
+
+        time.sleep(1.0)
+
+    log("      [!] reCAPTCHA bekleme süresi doldu.", log_callback)
+    return False
 
 
 def is_valid_audio_response(text):
@@ -704,12 +786,39 @@ def is_valid_audio_response(text):
     words = clean_text.split()
     if not words:
         return False
-    # En az bir kelimenin alfanümerik karakter barındırdığından emin olalım
     for w in words:
         w_clean = ''.join(ch for ch in w if ch.isalnum())
         if w_clean:
             return True
     return False
+
+
+def normalize_audio_response(text):
+    """reCAPTCHA ses çözümündeki sayı sözcüklerini (İngilizce/Türkçe) rakamlara dönüştürür."""
+    if not text:
+        return ""
+    num_map = {
+        'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+        'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+        'sıfır': '0', 'sifir': '0', 'bir': '1', 'iki': '2', 'üç': '3', 'uc': '3',
+        'dört': '4', 'dort': '4', 'beş': '5', 'bes': '5', 'altı': '6', 'alti': '6',
+        'yedi': '7', 'sekiz': '8', 'dokuz': '9'
+    }
+    words = text.lower().replace('-', ' ').replace(',', ' ').split()
+    converted = []
+    has_converted_digit = False
+    for w in words:
+        if w in num_map:
+            converted.append(num_map[w])
+            has_converted_digit = True
+        elif w.isdigit():
+            converted.append(w)
+            has_converted_digit = True
+        else:
+            converted.append(w)
+    if has_converted_digit:
+        return " ".join(converted)
+    return text.strip()
 
 
 def solve_recaptcha_audio(driver, log_callback=None):
@@ -719,15 +828,16 @@ def solve_recaptcha_audio(driver, log_callback=None):
     Adımlar:
       1. Anchor iframe → checkbox tıkla
       2. Challenge iframe görünürse → Ses simgesine tıkla
-      3. Ses dosyasını indir (urllib)
-      4. pydub ile MP3 → WAV dönüştür (FFmpeg gerektirir)
-      5. SpeechRecognition ile Google STT → metin al
+      3. Tarayıcı içi JS Fetch veya urllib ile ses dosyasını indir
+      4. pydub ile ses dosyasını WAV'a dönüştür
+      5. SpeechRecognition ile metin al (en-US / tr-TR fallback)
       6. Yanıtı forma yaz → "Doğrula" butonuna tıkla
     """
     try:
         import urllib.request
         import tempfile
         import os as _os
+        import base64
 
         # ── Kütüphane varlık kontrolü ──────────────────────────────────────
         try:
@@ -749,26 +859,41 @@ def solve_recaptcha_audio(driver, log_callback=None):
             log("      [!] reCAPTCHA anchor iframe bulunamadı", log_callback)
             return False
 
+        # Zaten çözülmüş mü?
+        try:
+            driver.switch_to.frame(anchor)
+            already_checked = driver.find_elements(
+                By.CSS_SELECTOR, '.recaptcha-checkbox-checked, [aria-checked="true"]')
+            if already_checked:
+                log("      [✓] reCAPTCHA zaten doğrulanmış (tik yeşil)!", log_callback)
+                driver.switch_to.default_content()
+                return True
+        except:
+            driver.switch_to.default_content()
+
+        driver.switch_to.default_content()
+        anchor = _find_recaptcha_anchor_frame(driver)
         driver.execute_script(
             "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", anchor)
         time.sleep(0.5)
         driver.switch_to.frame(anchor)
 
         wait = WebDriverWait(driver, 8)
-        checkbox = wait.until(EC.element_to_be_clickable(
+        checkbox = wait.until(EC.presence_of_element_located(
             (By.CSS_SELECTOR,
              '.recaptcha-checkbox-border, #recaptcha-anchor, .rc-anchor-checkbox')
         ))
-        time.sleep(random.uniform(0.4, 0.8))
-        checkbox.click()
+        time.sleep(random.uniform(0.3, 0.6))
+        try:
+            checkbox.click()
+        except Exception:
+            driver.execute_script("arguments[0].click();", checkbox)
         log("      [✓] reCAPTCHA checkbox tıklandı", log_callback)
         time.sleep(random.uniform(1.5, 2.5))
-        driver.switch_to.default_content()
 
-        # ── Checkbox başarılıysa (yeşil tik) direkt dön ──────────────────
+        # Checkbox başarılıysa (yeşil tik) direkt dön
         try:
-            driver.switch_to.frame(anchor)
-            checked = driver.find_element(
+            checked = driver.find_elements(
                 By.CSS_SELECTOR, '.recaptcha-checkbox-checked, [aria-checked="true"]')
             if checked:
                 log("      [✓] reCAPTCHA tek tıkla doğrulandı (tik yeşil)!", log_callback)
@@ -780,83 +905,158 @@ def solve_recaptcha_audio(driver, log_callback=None):
 
         # ── 2. Challenge iframe'ini bekle ─────────────────────────────────
         log("      [i] Challenge ekranı bekleniyor...", log_callback)
-        time.sleep(1.5)
         challenge_frame = None
-        for _ in range(8):  # max 8 × 0.8 sn = 6.4 sn
+        for _ in range(10):  # max 10 × 0.5 sn = 5.0 sn
             challenge_frame = _find_recaptcha_challenge_frame(driver)
             if challenge_frame:
                 break
-            time.sleep(0.8)
+            time.sleep(0.5)
 
         if not challenge_frame:
+            if is_recaptcha_solved(driver):
+                log("      [✓] reCAPTCHA doğrulandı!", log_callback)
+                return True
             log("      [i] Challenge açılmadı — checkbox yeterli olabilir.", log_callback)
-            return True  # Belki tik çalıştı, True döndür
+            return True
 
         driver.switch_to.frame(challenge_frame)
         log("      [i] Challenge iframe'i içinde, ses butonu aranıyor...", log_callback)
-        time.sleep(1.0)
 
-        # ── 3. Ses butonuna tıkla ─────────────────────────────────────────
+        # ── 3. Ses butonunu veya doscaptcha uyarısını bekle ────────────────
         audio_btn = None
-        for sel in [
-            '#recaptcha-audio-button',
-            'button.rc-button-audio',
-            'button[id*="audio"]',
-            'button[title*="ses"]',
-            'button[title*="audio"]',
-        ]:
+        doscaptcha_blocked = False
+        start_wait = time.time()
+        while time.time() - start_wait < 5.0:
+            if STOP_BOT:
+                driver.switch_to.default_content()
+                return False
+
             try:
-                audio_btn = driver.find_element(By.CSS_SELECTOR, sel)
-                if audio_btn.is_displayed():
+                doscaptcha = driver.find_elements(By.CSS_SELECTOR, '.rc-doscaptcha-header, .rc-doscaptcha-body, .rc-doscaptcha-footer')
+                if doscaptcha and any(d.is_displayed() for d in doscaptcha):
+                    doscaptcha_blocked = True
                     break
-                audio_btn = None
+                btext = driver.find_element(By.TAG_NAME, 'body').text.lower()
+                if 'automated queries' in btext or 'otomatik sorgular' in btext:
+                    doscaptcha_blocked = True
+                    break
             except:
-                audio_btn = None
+                pass
+
+            for sel in [
+                '#recaptcha-audio-button',
+                'button.rc-button-audio',
+                'button[id*="audio"]',
+                'button[title*="ses"]',
+                'button[title*="audio"]',
+            ]:
+                try:
+                    btn = driver.find_element(By.CSS_SELECTOR, sel)
+                    if btn.is_displayed():
+                        audio_btn = btn
+                        break
+                except:
+                    pass
+
+            if audio_btn:
+                break
+            time.sleep(0.4)
+
+        if doscaptcha_blocked:
+            log("      [!] Google bu IP/oturum için sesli doğrulamayı kısıtladı ('Automated queries' engeli).", log_callback)
+            log("      [i] İPUCU: Açılan tarayıcıda bir kez Google/Gmail hesabınıza giriş yaparak bu engeli aşabilirsiniz.", log_callback)
+            driver.switch_to.default_content()
+            return False
 
         if not audio_btn:
-            log("      [!] Ses butonu bulunamadı — resim challenge manuel çözülmeli.", log_callback)
+            log("      [!] Ses butonu bulunamadı — resim challenge veya kısıtlama olabilir.", log_callback)
             driver.switch_to.default_content()
             return False
 
         driver.execute_script(
             "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", audio_btn)
-        time.sleep(0.5)
-        audio_btn.click()
-        log("      [✓] Sesli doğrulama moduna geçildi", log_callback)
-        time.sleep(2.0)
+        time.sleep(0.4)
+        try:
+            audio_btn.click()
+        except Exception:
+            driver.execute_script("arguments[0].click();", audio_btn)
+        log("      [✓] Sesli doğrulama butonuna tıklandı", log_callback)
+        time.sleep(1.5)
 
-        # ── 4. Ses dosyası URL'ini al ve 3 denemelik döngü ────────────────
+        # Butona tıklandıktan hemen sonra Google engeli ("Automated queries") geldi mi kontrol et
+        try:
+            doscaptcha = driver.find_elements(By.CSS_SELECTOR, '.rc-doscaptcha-header, .rc-doscaptcha-body, .rc-doscaptcha-footer')
+            if doscaptcha and any(d.is_displayed() for d in doscaptcha):
+                log("      [!] Google sesli doğrulamayı kısıtladı ('Automated queries' engeli tespit edildi).", log_callback)
+                log("      [i] İPUCU: Açılan tarayıcıda bir Gmail/Google hesabına giriş yaparsanız bu kısıtlama kalkar.", log_callback)
+                driver.switch_to.default_content()
+                return False
+            btext = driver.find_element(By.TAG_NAME, 'body').text.lower()
+            if 'automated queries' in btext or 'otomatik sorgular' in btext:
+                log("      [!] Google sesli doğrulamayı kısıtladı ('Automated queries' engeli tespit edildi).", log_callback)
+                driver.switch_to.default_content()
+                return False
+        except:
+            pass
+
+        # ── 4. Ses dosyası URL'ini al ve döngü ────────────────────────────
         text = None
         for attempt in range(1, 4):
             if STOP_BOT:
                 driver.switch_to.default_content()
                 return False
-                
+
             log(f"      [i] Sesli doğrulama çözülüyor... Deneme {attempt}/3", log_callback)
             audio_src = None
-            for sel in [
-                'audio#audio-source',
-                'audio source',
-                '.rc-audiochallenge-tdownload-link',
-                'a[href*="audio"]',
-            ]:
+
+            # Ses URL'inin DOM'a gelmesini bekle (max 5 sn)
+            s_start = time.time()
+            while time.time() - s_start < 5.0:
                 try:
-                    el = driver.find_element(By.CSS_SELECTOR, sel)
-                    audio_src = el.get_attribute('src') or el.get_attribute('href')
-                    if audio_src:
+                    doscaptcha = driver.find_elements(By.CSS_SELECTOR, '.rc-doscaptcha-header, .rc-doscaptcha-body')
+                    if doscaptcha and any(d.is_displayed() for d in doscaptcha):
+                        log("      [!] Google sesli doğrulamayı kısıtladı ('Automated queries').", log_callback)
+                        driver.switch_to.default_content()
+                        return False
+                except:
+                    pass
+
+                for sel in [
+                    'a.rc-audiochallenge-download-link',
+                    'a.rc-audiochallenge-tdownload-link',
+                    '.rc-audiochallenge-download-link',
+                    '.rc-audiochallenge-tdownload-link',
+                    'a[href*="/payload"]',
+                    'a[href*="payload"]',
+                    'audio#audio-source',
+                    'audio source',
+                    'a[href*="audio"]',
+                ]:
+                    try:
+                        el = driver.find_element(By.CSS_SELECTOR, sel)
+                        val = el.get_attribute('src') or el.get_attribute('href')
+                        if val and ('payload' in val or 'audio' in val or val.startswith('http')):
+                            audio_src = val
+                            break
+                    except:
+                        pass
+
+                if audio_src:
+                    break
+
+                try:
+                    audio_el = driver.find_element(By.TAG_NAME, 'audio')
+                    src = audio_el.get_attribute('src')
+                    if src and src.startswith('http'):
+                        audio_src = src
                         break
                 except:
                     pass
 
-            if not audio_src:
-                try:
-                    audio_el = driver.find_element(By.TAG_NAME, 'audio')
-                    audio_src = audio_el.get_attribute('src')
-                except:
-                    pass
+                time.sleep(0.5)
 
             if not audio_src:
-                log("      [!] Ses dosyası URL'i bulunamadı", log_callback)
+                log("      [!] Ses dosyası URL'i bulunamadı.", log_callback)
                 if attempt < 3:
                     try:
                         reload_btn = None
@@ -868,9 +1068,10 @@ def solve_recaptcha_audio(driver, log_callback=None):
                                     break
                             except: pass
                         if reload_btn:
-                            reload_btn.click()
+                            try: reload_btn.click()
+                            except: driver.execute_script('arguments[0].click();', reload_btn)
                             log("      [i] Yeni reCAPTCHA sesi talep ediliyor...", log_callback)
-                            time.sleep(2.5)
+                            time.sleep(2.0)
                             continue
                     except: pass
                 driver.switch_to.default_content()
@@ -878,27 +1079,57 @@ def solve_recaptcha_audio(driver, log_callback=None):
 
             log(f"      [i] Ses dosyası indiriliyor (Deneme {attempt})...", log_callback)
 
-            # ── 5. Ses dosyasını indir ve WAV'a dönüştür ─────────────────────
-            tmp_dir  = tempfile.gettempdir()
-            mp3_path = _os.path.join(tmp_dir, 'captcha_audio.mp3')
-            wav_path = _os.path.join(tmp_dir, 'captcha_audio.wav')
+            # ── 5. Ses dosyasını indir (Önce Tarayıcı JS Fetch, sonra urllib) ──
+            tmp_dir = tempfile.gettempdir()
+            ts = int(time.time() * 1000)
+            raw_path = _os.path.join(tmp_dir, f'captcha_audio_{ts}.raw')
+            wav_path = _os.path.join(tmp_dir, f'captcha_audio_{ts}.wav')
 
             download_ok = False
+            # Yöntem A: Tarayıcı içi Fetch (Tarayıcının kendi oturumuyla indirme - en güvenli)
             try:
-                headers = {
-                    'User-Agent': (
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                        'AppleWebKit/537.36 (KHTML, like Gecko) '
-                        'Chrome/124.0.0.0 Safari/537.36'
-                    )
-                }
-                req = urllib.request.Request(audio_src, headers=headers)
-                with urllib.request.urlopen(req, timeout=20) as resp:
-                    with open(mp3_path, 'wb') as f:
-                        f.write(resp.read())
-                download_ok = True
+                driver.set_script_timeout(10)
+                b64_data = driver.execute_async_script("""
+                    var done = arguments[arguments.length - 1];
+                    var url = arguments[0];
+                    fetch(url)
+                        .then(function(r) { return r.blob(); })
+                        .then(function(b) {
+                            var reader = new FileReader();
+                            reader.onloadend = function() { done(reader.result); };
+                            reader.onerror = function() { done(null); };
+                            reader.readAsDataURL(b);
+                        })
+                        .catch(function(err) { done(null); });
+                """, audio_src)
+
+                if b64_data and ',' in b64_data:
+                    b64_str = b64_data.split(',', 1)[1]
+                    raw_bytes = base64.b64decode(b64_str)
+                    if len(raw_bytes) > 500:
+                        with open(raw_path, 'wb') as f:
+                            f.write(raw_bytes)
+                        download_ok = True
             except Exception as e:
-                log(f"      [!] Ses dosyası indirme hatası: {e}", log_callback)
+                pass
+
+            # Yöntem B: urllib fallback
+            if not download_ok:
+                try:
+                    headers = {
+                        'User-Agent': (
+                            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                            'AppleWebKit/537.36 (KHTML, like Gecko) '
+                            'Chrome/124.0.0.0 Safari/537.36'
+                        )
+                    }
+                    req = urllib.request.Request(audio_src, headers=headers)
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        with open(raw_path, 'wb') as f:
+                            f.write(resp.read())
+                    download_ok = True
+                except Exception as e:
+                    log(f"      [!] Ses dosyası indirme hatası: {e}", log_callback)
 
             if not download_ok:
                 if attempt < 3:
@@ -912,25 +1143,26 @@ def solve_recaptcha_audio(driver, log_callback=None):
                                     break
                             except: pass
                         if reload_btn:
-                            reload_btn.click()
+                            try: reload_btn.click()
+                            except: driver.execute_script('arguments[0].click();', reload_btn)
                             log("      [i] Yeni reCAPTCHA sesi talep ediliyor...", log_callback)
-                            time.sleep(2.5)
+                            time.sleep(2.0)
                             continue
                     except: pass
                 driver.switch_to.default_content()
                 return False
 
-            # MP3 → WAV (pydub + FFmpeg)
+            # Ses dosyasını WAV formatına dönüştür (pydub + FFmpeg)
             convert_ok = False
             try:
-                sound = AudioSegment.from_mp3(mp3_path)
+                sound = AudioSegment.from_file(raw_path)
                 sound.export(wav_path, format='wav')
                 convert_ok = True
             except Exception as e:
-                log(f"      [!] Ses dönüşüm hatası (FFmpeg kurulu mu?): {e}", log_callback)
+                log(f"      [!] Ses dönüşüm hatası (FFmpeg): {e}", log_callback)
 
             if not convert_ok:
-                try: _os.remove(mp3_path)
+                try: _os.remove(raw_path)
                 except: pass
                 if attempt < 3:
                     try:
@@ -943,37 +1175,57 @@ def solve_recaptcha_audio(driver, log_callback=None):
                                     break
                             except: pass
                         if reload_btn:
-                            reload_btn.click()
+                            try: reload_btn.click()
+                            except: driver.execute_script('arguments[0].click();', reload_btn)
                             log("      [i] Yeni reCAPTCHA sesi talep ediliyor...", log_callback)
-                            time.sleep(2.5)
+                            time.sleep(2.0)
                             continue
                     except: pass
                 driver.switch_to.default_content()
                 return False
 
-            # ── 6. Google STT ile metne çevir ─────────────────────────────────
+            # ── 6. SpeechRecognition (Google STT) ile metne çevir ─────────────
             recognizer = sr.Recognizer()
+            recognizer.energy_threshold = 300
             stt_ok = False
+            raw_text = None
+
             try:
                 with sr.AudioFile(wav_path) as source:
                     audio_data = recognizer.record(source)
-                text = recognizer.recognize_google(audio_data, language='en-US')
-                log(f"      [✓] Ses → Metin (Başarılı): '{text}'", log_callback)
-                stt_ok = True
-            except sr.UnknownValueError:
-                log(f"      [!] Ses tanınamadı (Deneme {attempt}/3 başarısız)", log_callback)
+
+                # Önce en-US ile dene
+                try:
+                    raw_text = recognizer.recognize_google(audio_data, language='en-US')
+                    stt_ok = True
+                except sr.UnknownValueError:
+                    # Türkçe olarak tekrar dene
+                    try:
+                        raw_text = recognizer.recognize_google(audio_data, language='tr-TR')
+                        stt_ok = True
+                    except:
+                        pass
+                except Exception as e:
+                    log(f"      [!] STT hatası: {e}", log_callback)
+
+                if stt_ok and raw_text:
+                    normalized_text = normalize_audio_response(raw_text)
+                    log(f"      [✓] Ses Tanıma Başarılı: '{normalized_text}'", log_callback)
+                    text = normalized_text
+                else:
+                    log(f"      [!] Ses tanınamadı (Deneme {attempt}/3)", log_callback)
+
             except Exception as e:
-                log(f"      [!] STT hatası: {e}", log_callback)
+                log(f"      [!] STT dosya okuma hatası: {e}", log_callback)
             finally:
-                for p in [mp3_path, wav_path]:
-                    try: _os.remove(p)
+                for p in [raw_path, wav_path]:
+                    try:
+                        if _os.path.exists(p): _os.remove(p)
                     except: pass
 
             if stt_ok and text and is_valid_audio_response(text):
                 break
             else:
-                if stt_ok and text:
-                    log(f"      [!] Geçersiz ses çözümü (Harf/Rakam içermiyor): '{text}'", log_callback)
                 stt_ok = False
                 if attempt < 3:
                     try:
@@ -986,16 +1238,17 @@ def solve_recaptcha_audio(driver, log_callback=None):
                                     break
                             except: pass
                         if reload_btn:
-                            reload_btn.click()
+                            try: reload_btn.click()
+                            except: driver.execute_script('arguments[0].click();', reload_btn)
                             log("      [i] Yeni reCAPTCHA sesi talep ediliyor...", log_callback)
-                            time.sleep(2.5)
+                            time.sleep(2.0)
+                            continue
                     except: pass
                 else:
                     driver.switch_to.default_content()
                     return False
 
         # ── 7. Yanıtı forma yaz ve doğrula ───────────────────────────────
-        enter_pressed = False
         try:
             response_input = driver.find_element(
                 By.CSS_SELECTOR,
@@ -1008,42 +1261,39 @@ def solve_recaptcha_audio(driver, log_callback=None):
             response_input.clear()
             time.sleep(0.1)
             response_input.send_keys(text.lower())
-            log("      [✓] Yanıt forma yazıldı", log_callback)
+            log("      [✓] Sesli doğrulama yanıtı yazıldı", log_callback)
             time.sleep(0.5)
-            response_input.send_keys(Keys.ENTER)
-            log("      [✓] Yanıt alanında Enter tuşuna basıldı", log_callback)
-            enter_pressed = True
+
+            # Doğrula butonuna tıkla
+            verify_clicked = False
+            try:
+                verify_btn = driver.find_element(
+                    By.CSS_SELECTOR,
+                    '#recaptcha-verify-button, button[id*="verify"], button.rc-button-default'
+                )
+                try:
+                    verify_btn.click()
+                except Exception:
+                    driver.execute_script("arguments[0].click();", verify_btn)
+                log("      [✓] 'Doğrula' butonuna tıklandı", log_callback)
+                verify_clicked = True
+            except:
+                pass
+
+            if not verify_clicked:
+                response_input.send_keys(Keys.ENTER)
+                log("      [✓] Yanıt alanında Enter tuşuna basıldı", log_callback)
+
         except Exception as e:
             log(f"      [!] Yanıt alanı bulunamadı veya değer yazılamadı: {e}", log_callback)
             driver.switch_to.default_content()
             return False
 
-        time.sleep(0.5)
-
-        # Doğrula butonuna tıkla
-        try:
-            verify_btn = driver.find_element(
-                By.CSS_SELECTOR,
-                '#recaptcha-verify-button, button[id*="verify"], button.rc-button-default'
-            )
-            try:
-                verify_btn.click()
-            except Exception:
-                driver.execute_script("arguments[0].click();", verify_btn)
-            log("      [✓] 'Doğrula' butonuna tıklandı", log_callback)
-        except Exception as e:
-            if enter_pressed:
-                log(f"      [i] Doğrula butonu tıklanamadı (Enter tuşu gönderildiği için normal olabilir): {e}", log_callback)
-            else:
-                log(f"      [!] Doğrula butonu bulunamadı: {e}", log_callback)
-                driver.switch_to.default_content()
-                return False
-
         # ── 8. g-recaptcha-response alanını kontrol et ───────────────────
         log("      [i] reCAPTCHA doğrulama sonucu bekleniyor...", log_callback)
         solved = False
         start_time = time.time()
-        
+
         while time.time() - start_time < 6.0:
             try:
                 driver.switch_to.default_content()
@@ -1070,9 +1320,9 @@ def solve_recaptcha_audio(driver, log_callback=None):
                         break
             except:
                 pass
-                
+
             time.sleep(0.5)
-            
+
         try:
             driver.switch_to.default_content()
         except:
@@ -1081,7 +1331,7 @@ def solve_recaptcha_audio(driver, log_callback=None):
         if solved:
             return True
         else:
-            log("      [!] g-recaptcha-response hâlâ boş — audio başarısız olabilir.", log_callback)
+            log("      [!] Sesli doğrulama tamamlanamadı (Yanıt hatalı veya ek sınama istendi).", log_callback)
             return False
 
     except Exception as e:
@@ -1095,12 +1345,32 @@ def solve_recaptcha_audio(driver, log_callback=None):
 def click_recaptcha(driver, log_callback=None, use_audio_captcha=True, use_token_captcha=False):
     """
     reCAPTCHA'yı çözer (öncelik sırası):
-    1. Ücretsiz Sesli Doğrulama (Audio Challenge) - ÖNCELİKLİ (Eğer etkinse)
-    2. Sesli doğrulama başarısız/devre dışı olursa ve 2captcha API anahtarı varsa → token enjeksiyonu (Etkinleştirildiyse)
-    3. Sesli doğrulama başarısız/devre dışı olursa ve CapSolver API anahtarı varsa → token enjeksiyonu (Etkinleştirildiyse)
-    4. Salt checkbox tıklama (En son fallback)
+    1. Zaten çözülmüş mü kontrolü
+    2. Ücretsiz Sesli Doğrulama (Audio Challenge) - ÖNCELİKLİ (Eğer etkinse)
+    3. 2captcha token enjeksiyonu (config.py'de anahtar varsa otomatik devreye girer)
+    4. CapSolver token enjeksiyonu (config.py'de anahtar varsa)
+    5. Salt checkbox tıklama (Challenge ekranı açık değilse ve henüz tıklanmadıysa)
+    6. Manuel çözüm bekleme (Challenge açık kalmışsa)
     """
-    # Yöntem 1: Sesli doğrulama (Audio Challenge) - Tamamen ücretsiz ve yerel yöntem
+    # 0. Zaten çözülmüş mü?
+    if is_recaptcha_solved(driver):
+        log("      [✓] reCAPTCHA zaten çözülmüş durumda.", log_callback)
+        return True
+
+    # Sayfadaki engelleyici backdrop overlay varsa pointer-events kapat
+    try:
+        driver.switch_to.default_content()
+        driver.execute_script("""
+            document.querySelectorAll('div[style*="opacity: 0.05"], div[style*="2000000000"]').forEach(function(d) {
+                if (d.style.position === 'fixed' && d.tagName === 'DIV' && !d.querySelector('iframe')) {
+                    d.style.pointerEvents = 'none';
+                }
+            });
+        """)
+    except:
+        pass
+
+    # Yöntem 1: Sesli doğrulama (Audio Challenge)
     if use_audio_captcha:
         log("      [i] Öncelikli yöntem: Ücretsiz Sesli Doğrulama (Audio Challenge) deneniyor...", log_callback)
         try:
@@ -1108,55 +1378,72 @@ def click_recaptcha(driver, log_callback=None, use_audio_captcha=True, use_token
                 return True
         except Exception as e:
             log(f"      [!] Sesli doğrulama çalıştırılırken hata: {e}", log_callback)
-    else:
-        log("      [i] Sesli doğrulama devre dışı bırakıldı. Alternatif yöntemler deneniyor...", log_callback)
 
-    # Yöntem 2: 2captcha token enjeksiyonu (Ücretli yedek plan 1)
-    if use_token_captcha and getattr(config, 'TWOCAPTCHA_API_KEY', None):
-        log("      [i] Sesli doğrulama başarısız veya engellendi. 2captcha yedek planı deneniyor...", log_callback)
+    # Sesli doğrulama sonrası çözüldü mü?
+    if is_recaptcha_solved(driver):
+        return True
+
+    # Yöntem 2: 2captcha token enjeksiyonu (Anahtar tanımlıysa otomatik devreye girer)
+    two_key = getattr(config, 'TWOCAPTCHA_API_KEY', '').strip()
+    if (use_token_captcha or two_key) and two_key:
+        log("      [i] 2captcha API anahtarı devrede, otomatik token çözümü deneniyor...", log_callback)
         result = solve_recaptcha_2captcha(driver, log_callback)
         if result:
             return True
 
-    # Yöntem 3: CapSolver token enjeksiyonu (Ücretli yedek plan 2)
-    if use_token_captcha and getattr(config, 'CAPSOLVER_API_KEY', None):
-        log("      [i] Sesli doğrulama başarısız veya engellendi. CapSolver yedek planı deneniyor...", log_callback)
+    # Yöntem 3: CapSolver token enjeksiyonu
+    capsolver_key = getattr(config, 'CAPSOLVER_API_KEY', '').strip() if hasattr(config, 'CAPSOLVER_API_KEY') else ''
+    if (use_token_captcha or capsolver_key) and capsolver_key:
+        log("      [i] CapSolver API anahtarı devrede, otomatik token çözümü deneniyor...", log_callback)
         result = solve_recaptcha_capsolver(driver, log_callback)
         if result:
             return True
 
-    # Yöntem 4: Salt checkbox tıklama (En son fallback)
-    log("      [i] Doğrudan checkbox tıklanıyor...", log_callback)
-    try:
-        driver.switch_to.default_content()
-        anchor = _find_recaptcha_anchor_frame(driver)
-        if not anchor:
-            log("      [!] reCAPTCHA iframe bulunamadı", log_callback)
-            return False
-
-        driver.execute_script(
-            "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", anchor)
-        time.sleep(0.5)
-        driver.switch_to.frame(anchor)
-
-        wait = WebDriverWait(driver, 8)
-        checkbox = wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR,
-             '.recaptcha-checkbox-border, #recaptcha-anchor, .rc-anchor-checkbox')
-        ))
-        time.sleep(random.uniform(0.3, 0.7))
-        checkbox.click()
-        log("      [✓] reCAPTCHA checkbox tıklandı", log_callback)
-        time.sleep(random.uniform(1.5, 2.5))
-        driver.switch_to.default_content()
-        return True
-
-    except Exception as e:
-        log(f"      [!] reCAPTCHA checkbox hatası: {e}", log_callback)
+    # Yöntem 4: Salt checkbox tıklama (Challenge ekranı açık değilse ve henüz tıklanmadıysa)
+    challenge_frame = _find_recaptcha_challenge_frame(driver)
+    if not challenge_frame:
+        log("      [i] Doğrudan checkbox tıklanıyor...", log_callback)
         try:
             driver.switch_to.default_content()
-        except: pass
-        return False
+            anchor = _find_recaptcha_anchor_frame(driver)
+            if not anchor:
+                log("      [!] reCAPTCHA iframe bulunamadı", log_callback)
+                return False
+
+            driver.execute_script(
+                "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", anchor)
+            time.sleep(0.5)
+            driver.switch_to.frame(anchor)
+
+            wait = WebDriverWait(driver, 8)
+            checkbox = wait.until(EC.presence_of_element_located(
+                (By.CSS_SELECTOR,
+                 '.recaptcha-checkbox-border, #recaptcha-anchor, .rc-anchor-checkbox')
+            ))
+            time.sleep(random.uniform(0.3, 0.7))
+            try:
+                checkbox.click()
+            except Exception:
+                driver.execute_script("arguments[0].click();", checkbox)
+            log("      [✓] reCAPTCHA checkbox tıklandı", log_callback)
+            time.sleep(random.uniform(1.5, 2.5))
+            driver.switch_to.default_content()
+
+            if is_recaptcha_solved(driver):
+                log("      [✓] reCAPTCHA tek tıkla doğrulandı!", log_callback)
+                return True
+
+        except Exception as e:
+            log(f"      [!] reCAPTCHA checkbox hatası: {e}", log_callback)
+            try:
+                driver.switch_to.default_content()
+            except: pass
+
+    # Yöntem 5: reCAPTCHA çözülemediyse ve challenge ekranda açıksa manuel bekle
+    if not is_recaptcha_solved(driver):
+        return wait_for_manual_recaptcha(driver, timeout=45, log_callback=log_callback)
+
+    return True
 
 def click_submit(driver, log_callback=None):
     """
@@ -1551,7 +1838,7 @@ def run_bot(data_file_path, log_callback=None, use_audio_captcha=None, use_token
             start_wait = time.time()
             retried = False
             
-            while True:
+            while time.time() - start_wait < 60:
                 if STOP_BOT: break
                     
                 try:
@@ -1602,6 +1889,8 @@ def run_bot(data_file_path, log_callback=None, use_audio_captcha=None, use_token
             if success_detected:
                 log("   [i] Success confirmed. Waiting 1.5 seconds before next student...", log_callback)
                 time.sleep(0.8)
+            else:
+                log(f"   [!] {display_name} için form başarı onayı alınamadı (Zaman aşımı). Sonraki kayda geçiliyor...", log_callback)
             
     except KeyboardInterrupt:
         log("\nStopped.", log_callback)

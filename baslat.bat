@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title T Bot — TÜGVA Yaz Okulu Otomasyonu
+title T Bot — TÜGVA Başvuru Otomasyonu
 color 0A
 
 REM ── Python kontrolü ─────────────────────────────────────────────────────────
